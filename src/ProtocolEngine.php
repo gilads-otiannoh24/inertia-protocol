@@ -211,7 +211,7 @@ class ProtocolEngine
             deepMergeProps: $deepMergeProps,
             matchPropsOn: $matchPropsOn,
             onceProps: $onceProps,
-            scrollProps: $scrollProps,
+            scrollProps: $scrollProps ?: (array) ($options['scrollProps'] ?? []),
             sharedProps: (array) ($options['sharedKeys'] ?? []),
             flash: (array) ($options['flash'] ?? []),
             encryptHistory: (bool) ($options['encryptHistory'] ?? false),

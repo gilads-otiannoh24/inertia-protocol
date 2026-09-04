@@ -1,0 +1,4 @@
+/vendor/
+.phpunit.*
+composer.lock
+.env

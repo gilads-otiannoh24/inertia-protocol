@@ -1,0 +1,34 @@
+{
+    "name": "iankumu/inertia-protocol",
+    "version": "dev-main",
+    "description": "Framework-agnostic Inertia.js Wire Protocol Engine and Response Builder for PHP.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Ian Ochieng",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": ">=8.2"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.5 || ^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Inertia\\Protocol\\": "src/"
+        },
+        "files": [
+            "src/Support/helpers.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Inertia\\Protocol\\Tests\\": "tests/"
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

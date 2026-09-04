@@ -29,7 +29,7 @@ Designed to power any PHP framework adapter (CodeIgniter 4, Symfony, Slim, RoadR
 ## Installation
 
 ```bash
-composer require iankumu/inertia-protocol
+composer require gilads-otiannoh254/inertia-protocol
 ```
 
 ---

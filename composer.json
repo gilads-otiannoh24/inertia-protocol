@@ -1,6 +1,5 @@
 {
-    "name": "iankumu/inertia-protocol",
-    "version": "dev-main",
+    "name": "gilads-otiannoh254/inertia-protocol",
     "description": "Framework-agnostic Inertia.js Wire Protocol Engine and Response Builder for PHP.",
     "type": "library",
     "license": "MIT",

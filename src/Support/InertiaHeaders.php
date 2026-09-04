@@ -13,6 +13,7 @@ final class InertiaHeaders
     public const HEADER_ERROR_BAG = 'X-Inertia-Error-Bag';
     public const HEADER_PARTIAL_COMPONENT = 'X-Inertia-Partial-Component';
     public const HEADER_PARTIAL_DATA = 'X-Inertia-Partial-Data';
+    public const HEADER_PARTIAL_ONLY = 'X-Inertia-Partial-Only';
     public const HEADER_PARTIAL_EXCEPT = 'X-Inertia-Partial-Except';
     public const HEADER_RESET = 'X-Inertia-Reset';
     public const HEADER_EXCEPT_ONCE_PROPS = 'X-Inertia-Except-Once-Props';

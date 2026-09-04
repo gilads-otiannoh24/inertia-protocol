@@ -52,14 +52,22 @@ class ProtocolEngine
         }
 
         // 2. Partial Reload Headers
+        $rawInertia = strtolower($request->getHeaderLine(InertiaHeaders::HEADER_INERTIA));
         $isInertia = $request->hasHeader(InertiaHeaders::HEADER_INERTIA) &&
-                     strtolower($request->getHeaderLine(InertiaHeaders::HEADER_INERTIA)) === 'true';
+                     $rawInertia !== '' &&
+                     $rawInertia !== 'false' &&
+                     $rawInertia !== '0';
+
+        $partialDataRaw = $request->getHeaderLine(InertiaHeaders::HEADER_PARTIAL_DATA);
+        if ($partialDataRaw === '') {
+            $partialDataRaw = $request->getHeaderLine(InertiaHeaders::HEADER_PARTIAL_ONLY);
+        }
 
         $isPartial = $isInertia &&
-                     $request->hasHeader(InertiaHeaders::HEADER_PARTIAL_DATA) &&
+                     $partialDataRaw !== '' &&
                      $request->getHeaderLine(InertiaHeaders::HEADER_PARTIAL_COMPONENT) === $component;
 
-        $partialData = $isPartial ? array_filter(array_map('trim', explode(',', $request->getHeaderLine(InertiaHeaders::HEADER_PARTIAL_DATA)))) : [];
+        $partialData = $isPartial ? array_filter(array_map('trim', explode(',', $partialDataRaw))) : [];
         $partialExcept = $isPartial && $request->hasHeader(InertiaHeaders::HEADER_PARTIAL_EXCEPT)
             ? array_filter(array_map('trim', explode(',', $request->getHeaderLine(InertiaHeaders::HEADER_PARTIAL_EXCEPT))))
             : [];

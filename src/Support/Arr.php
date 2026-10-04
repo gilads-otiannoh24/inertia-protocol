@@ -13,7 +13,9 @@ final class Arr
      */
     public static function value(mixed $value, mixed ...$args): mixed
     {
-        if ($value instanceof Closure || is_callable($value)) {
+        // BUG: We noticed that the value was having collittions with globally 
+        // defined funtions. Because of this normal strins cannot be evaluated as callbacks
+        if ($value instanceof Closure || is_callable($value) && !is_string($value)) {
             return $value(...$args);
         }
 

@@ -2,3 +2,4 @@
 .phpunit.*
 composer.lock
 .env
+composer.lock

@@ -18,6 +18,11 @@ final class InertiaHeaders
     public const HEADER_RESET = 'X-Inertia-Reset';
     public const HEADER_EXCEPT_ONCE_PROPS = 'X-Inertia-Except-Once-Props';
     public const HEADER_INFINITE_SCROLL_MERGE_INTENT = 'X-Inertia-Infinite-Scroll-Merge-Intent';
+    public const HEADER_SOCKET_ID = 'X-Socket-Id';
+    public const HEADER_PURPOSE = 'Purpose';
+    public const HEADER_XSRF_TOKEN = 'X-XSRF-TOKEN';
+    public const HEADER_REQUESTED_WITH = 'X-Requested-With';
+    public const HEADER_CACHE_CONTROL = 'Cache-Control';
     public const HEADER_PRECOGNITION = 'Precognition';
     public const HEADER_PRECOGNITION_VALIDATE_ONLY = 'Precognition-Validate-Only';
     public const HEADER_PRECOGNITION_SUCCESS = 'Precognition-Success';

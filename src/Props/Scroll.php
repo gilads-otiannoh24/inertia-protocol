@@ -19,9 +19,19 @@ class Scroll implements PropInterface
     ) {
     }
 
+    public function defer(string $group = 'default', bool $rescue = false): Defer
+    {
+        return new Defer($this, $group, $rescue);
+    }
+
+    public function live(array $listeners = [], ?int $throttle = null): Live
+    {
+        return new Live($this, $listeners, $throttle);
+    }
+
     public function resolve(): mixed
     {
-        return Arr::value($this->data);
+        return Arr::resolve($this->data);
     }
 
     /**

@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace Inertia\Protocol;
 
+use Inertia\Protocol\Contracts\PropInterface;
 use Inertia\Protocol\Contracts\RequestInterface;
 use Inertia\Protocol\Props\Always;
 use Inertia\Protocol\Props\Defer;
 use Inertia\Protocol\Props\Lazy;
+use Inertia\Protocol\Props\Live;
 use Inertia\Protocol\Props\Mergeable;
 use Inertia\Protocol\Props\Once;
 use Inertia\Protocol\Props\Scroll;
 use Inertia\Protocol\Support\Arr;
 use Inertia\Protocol\Support\InertiaHeaders;
+use Inertia\Protocol\Support\ReservedProps;
 use Throwable;
 
 class ProtocolEngine
@@ -24,7 +27,7 @@ class ProtocolEngine
      * @param string $component JavaScript page component name
      * @param array<string, mixed> $props Raw page props (can contain Closures, Prop objects, arrays)
      * @param string|int|callable $version Asset version string, int, or callable
-     * @param array<string, mixed> $options Additional options (encryptHistory, clearHistory, preserveFragment, sharedKeys, flash, etc.)
+     * @param array<string, mixed> $options Additional options (encryptHistory, clearHistory, preserveBigIntegers, preserveFragment, sharedKeys, flash, etc.)
      */
     public function evaluate(
         RequestInterface $request,
@@ -80,7 +83,13 @@ class ProtocolEngine
             ? array_filter(array_map('trim', explode(',', $request->getHeaderLine(InertiaHeaders::HEADER_EXCEPT_ONCE_PROPS))))
             : [];
 
+        $mergeIntent = strtolower($request->getHeaderLine(InertiaHeaders::HEADER_INFINITE_SCROLL_MERGE_INTENT));
         $errorBag = $request->getHeaderLine(InertiaHeaders::HEADER_ERROR_BAG);
+        $preserveBigIntegers = (bool) ($options['preserveBigIntegers'] ?? false);
+        $protocolVersion = ProtocolVersion::fromMixed($options['protocolVersion'] ?? ProtocolVersion::V3);
+
+        // Validate user props against reserved keys
+        ReservedProps::validate($props, $protocolVersion);
 
         // 3. Resolve Props and Metadata
         $resolvedProps = [];
@@ -91,110 +100,149 @@ class ProtocolEngine
         $deepMergeProps = [];
         $matchPropsOn = [];
         $onceProps = [];
+        $liveProps = [];
         $scrollProps = [];
 
-        // Ensure errors prop exists
-        if (!isset($props['errors'])) {
-            $props['errors'] = (object) [];
-        }
-
         foreach ($props as $key => $value) {
-            // Handle Always props (always resolved in both full visit and partial reload)
-            if ($value instanceof Always) {
-                $resolvedProps[$key] = $value->resolve();
+            $info = $this->inspectProp($value);
+
+            // Handle Always props (always evaluated, even in partial reloads)
+            if ($info['isAlways']) {
+                $resolvedProps[$key] = Arr::resolve($value);
                 continue;
             }
 
             // Partial reload filtering
             if ($isPartial) {
-                if (!empty($partialData) && !in_array($key, $partialData, true)) {
+                if (!Arr::matchesPartial($key, $partialData)) {
                     continue;
                 }
                 if (!empty($partialExcept) && in_array($key, $partialExcept, true)) {
                     continue;
                 }
-            } elseif ($value instanceof Lazy) {
-                // Lazy / Optional props are skipped on full visits
+            } elseif ($info['isLazy'] && $info['defer'] === null) {
+                // Optional / Lazy props are skipped on full visits
                 continue;
             }
 
             // Handle Once props
-            if ($value instanceof Once) {
+            if ($info['once'] !== null) {
                 $onceProps[$key] = [
                     'prop'      => $key,
-                    'expiresAt' => $value->expiresAt,
+                    'expiresAt' => $info['once']->expiresAt,
                 ];
 
-                // If already cached on client and not a partial reload targeting it, skip resolving
+                // If cached client-side and not a partial reload targeting it, skip resolving
                 if (!$isPartial && in_array($key, $exceptOnce, true)) {
                     continue;
                 }
-
-                $resolvedProps[$key] = $value->resolve();
-                continue;
             }
 
             // Handle Defer props
-            if ($value instanceof Defer) {
-                if (!$isPartial || (!empty($partialData) && !in_array($key, $partialData, true))) {
-                    $deferredProps[$value->group][] = $key;
+            $resolvedValue = null;
+            $hasExplicitResolution = false;
+
+            if ($info['defer'] !== null) {
+                if (!$isPartial || (!empty($partialData) && !Arr::matchesPartial($key, $partialData))) {
+                    $deferredProps[$info['defer']->group][] = $key;
                     continue;
                 }
 
                 try {
-                    $resolvedProps[$key] = $value->resolve();
+                    // Inspect intermediate values if defer callback returns a PropInterface (e.g. Scroll or Mergeable)
+                    $target = $value;
+                    while ($target instanceof Defer) {
+                        $target = $target->callback;
+                        if ($target instanceof Closure || (is_callable($target) && !is_string($target))) {
+                            $target = $target();
+                        }
+                    }
+
+                    if ($target instanceof Scroll && $info['scroll'] === null) {
+                        $info['scroll'] = $target;
+                    } elseif ($target instanceof Mergeable && $info['mergeable'] === null) {
+                        $info['mergeable'] = $target;
+                    } elseif ($target instanceof Live && $info['live'] === null) {
+                        $info['live'] = $target;
+                    }
+
+                    $resolvedValue = Arr::resolve($target);
+                    $hasExplicitResolution = true;
                 } catch (Throwable $e) {
-                    if ($value->rescue) {
+                    if ($info['defer']->rescue) {
                         $rescuedProps[] = $key;
+                        continue;
+                    }
+                    throw $e;
+                }
+            }
+
+            // Handle Scroll props
+            if ($info['scroll'] !== null) {
+                $metadata = $info['scroll']->toMetadata();
+                if (in_array($key, $resetProps, true)) {
+                    $metadata['reset'] = true;
+                } else {
+                    if ($mergeIntent === 'prepend') {
+                        $prependProps[] = "{$key}.data";
                     } else {
-                        throw $e;
+                        $mergeProps[] = "{$key}.data";
                     }
                 }
-                continue;
+                $scrollProps[$key] = $metadata;
             }
 
             // Handle Mergeable props
-            if ($value instanceof Mergeable) {
+            if ($info['mergeable'] !== null) {
                 $isReset = in_array($key, $resetProps, true);
                 if (!$isReset) {
-                    if ($value->deep) {
+                    if ($info['mergeable']->deep) {
                         $deepMergeProps[] = $key;
-                    } elseif ($value->prepend) {
+                    } elseif ($info['mergeable']->prepend) {
                         $prependProps[] = $key;
                     } else {
                         $mergeProps[] = $key;
                     }
 
-                    if ($value->matchOn) {
-                        $matchPropsOn[] = "{$key}.{$value->matchOn}";
+                    if ($info['mergeable']->matchOn) {
+                        $matchPropsOn[] = "{$key}.{$info['mergeable']->matchOn}";
                     }
                 }
-
-                $resolvedProps[$key] = $value->resolve();
-                continue;
             }
 
-            // Handle Scroll props
-            if ($value instanceof Scroll) {
-                $metadata = $value->toMetadata();
-                if (in_array($key, $resetProps, true)) {
-                    $metadata['reset'] = true;
-                } else {
-                    $mergeProps[] = "{$key}.data";
-                }
-
-                $scrollProps[$key] = $metadata;
-                $resolvedProps[$key] = $value->resolve();
-                continue;
+            // Handle Live props
+            if ($info['live'] !== null) {
+                $liveProps[$key] = $info['live']->toMetadata();
             }
 
-            // Standard / Callable props
-            $resolvedProps[$key] = Arr::value($value);
+            // Resolve prop value if not already done
+            if (!$hasExplicitResolution) {
+                $resolvedValue = Arr::resolve($value);
+            }
+
+            // Dot notation filtering for plain arrays in partial reloads
+            if ($isPartial && is_array($value) && is_array($resolvedValue)) {
+                $resolvedValue = Arr::filterByDotPaths($resolvedValue, $key, $partialData, $partialExcept);
+            }
+
+            $resolvedProps[$key] = $resolvedValue;
         }
 
+        // Populate errors prop from options or default to empty object
+        $errorsData = $options['errors'] ?? (object) [];
+
         // Error Bag scoping
-        if ($errorBag !== '' && isset($resolvedProps['errors']) && is_array($resolvedProps['errors'])) {
-            $resolvedProps['errors'] = [$errorBag => $resolvedProps['errors']];
+        if ($errorBag !== '') {
+            if (is_array($errorsData) || is_object($errorsData)) {
+                $errorsData = [$errorBag => (array) $errorsData];
+            }
+        }
+
+        $resolvedProps['errors'] = $errorsData;
+
+        // Big integer preservation outside JavaScript's safe range
+        if ($preserveBigIntegers) {
+            $resolvedProps = Arr::wrapBigIntegers($resolvedProps);
         }
 
         $url = $request->getUrl();
@@ -211,12 +259,15 @@ class ProtocolEngine
             deepMergeProps: $deepMergeProps,
             matchPropsOn: $matchPropsOn,
             onceProps: $onceProps,
+            liveProps: $liveProps,
             scrollProps: $scrollProps ?: (array) ($options['scrollProps'] ?? []),
             sharedProps: (array) ($options['sharedKeys'] ?? []),
             flash: (array) ($options['flash'] ?? []),
             encryptHistory: (bool) ($options['encryptHistory'] ?? false),
             clearHistory: (bool) ($options['clearHistory'] ?? false),
-            preserveFragment: (bool) ($options['preserveFragment'] ?? false)
+            preserveBigIntegers: $preserveBigIntegers,
+            preserveFragment: (bool) ($options['preserveFragment'] ?? false),
+            protocolVersion: $protocolVersion
         );
 
         if ($isInertia) {
@@ -245,6 +296,70 @@ class ProtocolEngine
     }
 
     /**
+     * Inspect a prop to extract any composed category modifiers.
+     *
+     * @return array{
+     *   isAlways: bool,
+     *   isLazy: bool,
+     *   defer: Defer|null,
+     *   once: Once|null,
+     *   scroll: Scroll|null,
+     *   mergeable: Mergeable|null,
+     *   live: Live|null,
+     *   innerValue: mixed
+     * }
+     */
+    protected function inspectProp(mixed $prop): array
+    {
+        $isAlways = false;
+        $isLazy = false;
+        $defer = null;
+        $once = null;
+        $scroll = null;
+        $mergeable = null;
+        $live = null;
+
+        $current = $prop;
+        while ($current instanceof PropInterface) {
+            if ($current instanceof Always) {
+                $isAlways = true;
+                $current = $current->value;
+            } elseif ($current instanceof Defer) {
+                $defer = $current;
+                $current = $current->callback;
+            } elseif ($current instanceof Lazy) {
+                $isLazy = true;
+                $current = $current->callback;
+            } elseif ($current instanceof Once) {
+                $once = $current;
+                $current = $current->callback;
+            } elseif ($current instanceof Scroll) {
+                $scroll = $current;
+                $current = $current->data;
+            } elseif ($current instanceof Mergeable) {
+                $mergeable = $current;
+                $current = $current->value;
+            } elseif ($current instanceof Live) {
+                $live = $current;
+                $current = $current->value;
+            } else {
+                break;
+            }
+        }
+
+        return [
+            'isAlways'   => $isAlways,
+            'isLazy'     => $isLazy,
+            'defer'      => $defer,
+            'once'       => $once,
+            'scroll'     => $scroll,
+            'mergeable'  => $mergeable,
+            'live'       => $live,
+            'innerValue' => $current,
+        ];
+    }
+
+    /**
      * Create an external location visit response decision (409 Conflict).
      */
     public function location(string $url): ResponseDecision
@@ -270,6 +385,35 @@ class ProtocolEngine
             headers: [
                 InertiaHeaders::HEADER_REDIRECT => $url,
             ],
+            content: $url
+        );
+    }
+
+    /**
+     * Create a standard redirect decision (302 or 303 for non-GET requests).
+     *
+     * @param string $url
+     * @param RequestInterface|null $request
+     * @param int $defaultStatusCode
+     * @param array<string, string> $headers
+     * @param ProtocolVersion|string|null $protocolVersion
+     */
+    public function redirect(
+        string $url,
+        ?RequestInterface $request = null,
+        int $defaultStatusCode = 302,
+        array $headers = [],
+        ProtocolVersion|string|null $protocolVersion = null
+    ): ResponseDecision {
+        $ver = $protocolVersion ? ProtocolVersion::fromMixed($protocolVersion) : ProtocolVersion::V3;
+        $method = $request ? strtoupper($request->getMethod()) : 'GET';
+        $methodsWith303 = $ver->isV2() ? ['PUT', 'PATCH', 'DELETE'] : ['PUT', 'PATCH', 'DELETE', 'QUERY'];
+        $statusCode = in_array($method, $methodsWith303, true) ? 303 : $defaultStatusCode;
+
+        return new ResponseDecision(
+            type: ResponseDecision::TYPE_REDIRECT,
+            statusCode: $statusCode,
+            headers: array_merge(['Location' => $url], $headers),
             content: $url
         );
     }

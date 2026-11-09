@@ -6,6 +6,7 @@ namespace Inertia\Protocol;
 
 use Inertia\Protocol\Contracts\RequestInterface;
 use Inertia\Protocol\Support\NativeRequest;
+use Inertia\Protocol\Support\ReservedProps;
 
 class InertiaResponse
 {
@@ -45,11 +46,33 @@ class InertiaResponse
      */
     public function with(array|string $key, mixed $value = null): self
     {
-        if (is_array($key)) {
-            $this->props = array_merge($this->props, $key);
-        } else {
-            $this->props[$key] = $value;
-        }
+        $incoming = is_array($key) ? $key : [$key => $value];
+        $ver = $this->options['protocolVersion'] ?? InertiaProtocol::getProtocolVersion();
+        ReservedProps::validate($incoming, $ver);
+
+        $this->props = array_merge($this->props, $incoming);
+
+        return $this;
+    }
+
+    /**
+     * Attach validation errors to the response without violating prop key integrity.
+     *
+     * @param array<string, mixed>|object $errors
+     */
+    public function withErrors(array|object $errors): self
+    {
+        $this->options['errors'] = $errors;
+
+        return $this;
+    }
+
+    /**
+     * Set the wire protocol version for this response (e.g. ProtocolVersion::V2 or ProtocolVersion::V3).
+     */
+    public function withProtocolVersion(ProtocolVersion|string $version): self
+    {
+        $this->options['protocolVersion'] = ProtocolVersion::fromMixed($version);
 
         return $this;
     }
@@ -80,6 +103,16 @@ class InertiaResponse
     public function clearHistory(bool $clear = true): self
     {
         $this->options['clearHistory'] = $clear;
+
+        return $this;
+    }
+
+    /**
+     * Enable or disable wrapping integers outside JavaScript safe range as {"$bigint": "<digits>"}.
+     */
+    public function preserveBigIntegers(bool $preserve = true): self
+    {
+        $this->options['preserveBigIntegers'] = $preserve;
 
         return $this;
     }
@@ -124,6 +157,10 @@ class InertiaResponse
     public function toDecision(?RequestInterface $request = null): ResponseDecision
     {
         $req = $request ?? NativeRequest::fromGlobals();
+
+        if (!isset($this->options['protocolVersion'])) {
+            $this->options['protocolVersion'] = InertiaProtocol::getProtocolVersion();
+        }
 
         return $this->engine->evaluate($req, $this->component, $this->props, $this->version, $this->options);
     }

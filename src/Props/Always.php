@@ -15,6 +15,6 @@ class Always implements PropInterface
 
     public function resolve(): mixed
     {
-        return Arr::value($this->value);
+        return Arr::resolve($this->value);
     }
 }

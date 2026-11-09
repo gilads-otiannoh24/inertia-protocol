@@ -53,4 +53,33 @@ class ResponseDecision
     {
         return $this->type === self::TYPE_PRECOGNITION_SUCCESS;
     }
+
+    public function isRedirect(): bool
+    {
+        return $this->type === self::TYPE_REDIRECT;
+    }
+
+    /**
+     * Render the page object's HTML tags (respects protocolVersion: v2 div vs v3 script+div).
+     */
+    public function toHtml(string $rootId = 'app'): ?string
+    {
+        return $this->pageObject?->toHtml($rootId);
+    }
+
+    /**
+     * Render the v2 specification <div id="..." data-page="..."></div>.
+     */
+    public function toHtmlDiv(string $rootId = 'app'): ?string
+    {
+        return $this->pageObject?->toHtmlDiv($rootId);
+    }
+
+    /**
+     * Render the v3 specification <script data-page="..." type="application/json">...</script>.
+     */
+    public function toHtmlScript(string $rootId = 'app'): ?string
+    {
+        return $this->pageObject?->toHtmlScript($rootId);
+    }
 }

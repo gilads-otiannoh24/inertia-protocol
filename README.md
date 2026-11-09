@@ -12,11 +12,11 @@ Designed to power any PHP framework adapter (CodeIgniter 4, Symfony, Slim, RoadR
 
 ## Highlights
 
-* 🚀 **Zero Dependencies**: Pure PHP 8.2+ with strict typing.
-* 🔀 **Multi-Version Protocol**: Seamlessly target **Inertia v3** (`<script data-page>` tags, live props, BigInt preservation) or **Inertia v2** (`<div data-page>` attributes).
-* 🔄 **Advanced Prop Model**: Composable props (`always`, `optional`/`lazy`, `defer`, `once`, `live`, `merge`, `scroll`).
-* ⚡ **Decoupled Architecture**: Evaluates requests into clean `ResponseDecision` objects without binding to specific HTTP kernels.
-* 🌐 **SSR Ready**: Built-in `HttpSsrGateway` for official Node SSR server rendering and health checks.
+* **Zero Dependencies**: Pure PHP 8.2+ with strict typing.
+* **Multi-Version Protocol**: Seamlessly target **Inertia v3** (`<script data-page>` tags, live props, BigInt preservation) or **Inertia v2** (`<div data-page>` attributes).
+* **Advanced Prop Model**: Composable props (`always`, `optional`/`lazy`, `defer`, `once`, `live`, `merge`, `scroll`).
+* **Decoupled Architecture**: Evaluates requests into clean `ResponseDecision` objects without binding to specific HTTP kernels.
+* **SSR Ready**: Built-in `HttpSsrGateway` for official Node SSR server rendering and health checks.
 
 ---
 
@@ -68,12 +68,12 @@ Comprehensive in-depth documentation is available in the [`docs/`](docs/index.md
 
 | Topic | Description |
 | :--- | :--- |
-| 📖 [**Getting Started**](docs/getting-started/introduction.md) | [Introduction](docs/getting-started/introduction.md), [Installation](docs/getting-started/installation.md), and [Quick Start Guide](docs/getting-started/quick-start.md) |
-| 🧩 [**Core Concepts**](docs/core-concepts/the-protocol.md) | [The Protocol Lifecycle](docs/core-concepts/the-protocol.md), [Page Object Schema](docs/core-concepts/page-object.md), [Response Decisions](docs/core-concepts/response-decision.md), [Request Interface](docs/core-concepts/request-handling.md) |
-| 🔀 [**Protocol Versions**](docs/protocol-versions/overview.md) | [Version Overview](docs/protocol-versions/overview.md), [Version 3 Spec](docs/protocol-versions/version-3.md), [Version 2 Spec](docs/protocol-versions/version-2.md), [Version Switching](docs/protocol-versions/switching-versions.md) |
-| 📦 [**Props Evaluation**](docs/props/overview.md) | [Evaluation Model](docs/props/overview.md), [Always](docs/props/always-props.md), [Optional/Lazy](docs/props/optional-lazy-props.md), [Deferred](docs/props/deferred-props.md), [Once](docs/props/once-props.md), [Live](docs/props/live-props.md), [Merging](docs/props/merging-props.md), [Scroll](docs/props/infinite-scroll.md), [Shared](docs/props/shared-props.md) |
-| ⚙️ [**Advanced Features**](docs/advanced/partial-reloads.md) | [Partial Reloads](docs/advanced/partial-reloads.md), [Asset Versioning (409)](docs/advanced/asset-versioning.md), [Redirects (303)](docs/advanced/redirects.md), [Reserved Props](docs/advanced/reserved-props.md), [Error Bags](docs/advanced/validation-errors.md), [History Encryption](docs/advanced/history-encryption.md), [Big Integers](docs/advanced/big-integers.md), [SSR Gateway](docs/advanced/server-side-rendering.md) |
-| 🛠️ [**Framework Adapters**](docs/adapters/overview.md) | [Building Adapters](docs/adapters/overview.md), [PSR-7 / Slim](docs/adapters/psr7.md), [Symfony](docs/adapters/symfony.md), [CodeIgniter 4](docs/adapters/codeigniter.md), [RoadRunner / Swoole](docs/adapters/async-runtimes.md) |
+| [**Getting Started**](docs/getting-started/introduction.md) | [Introduction](docs/getting-started/introduction.md), [Installation](docs/getting-started/installation.md), and [Quick Start Guide](docs/getting-started/quick-start.md) |
+| [**Core Concepts**](docs/core-concepts/the-protocol.md) | [The Protocol Lifecycle](docs/core-concepts/the-protocol.md), [Page Object Schema](docs/core-concepts/page-object.md), [Response Decisions](docs/core-concepts/response-decision.md), [Request Interface](docs/core-concepts/request-handling.md) |
+| [**Protocol Versions**](docs/protocol-versions/overview.md) | [Version Overview](docs/protocol-versions/overview.md), [Version 3 Spec](docs/protocol-versions/version-3.md), [Version 2 Spec](docs/protocol-versions/version-2.md), [Version Switching](docs/protocol-versions/switching-versions.md) |
+| [**Props Evaluation**](docs/props/overview.md) | [Evaluation Model](docs/props/overview.md), [Always](docs/props/always-props.md), [Optional/Lazy](docs/props/optional-lazy-props.md), [Deferred](docs/props/deferred-props.md), [Once](docs/props/once-props.md), [Live](docs/props/live-props.md), [Merging](docs/props/merging-props.md), [Scroll](docs/props/infinite-scroll.md), [Shared](docs/props/shared-props.md) |
+| [**Advanced Features**](docs/advanced/partial-reloads.md) | [Partial Reloads](docs/advanced/partial-reloads.md), [Asset Versioning (409)](docs/advanced/asset-versioning.md), [Redirects (303)](docs/advanced/redirects.md), [Reserved Props](docs/advanced/reserved-props.md), [Error Bags](docs/advanced/validation-errors.md), [History Encryption](docs/advanced/history-encryption.md), [Big Integers](docs/advanced/big-integers.md), [SSR Gateway](docs/advanced/server-side-rendering.md) |
+| [**Framework Adapters**](docs/adapters/overview.md) | [Building Adapters](docs/adapters/overview.md), [PSR-7 / Slim](docs/adapters/psr7.md), [Symfony](docs/adapters/symfony.md), [CodeIgniter 4](docs/adapters/codeigniter.md), [RoadRunner / Swoole](docs/adapters/async-runtimes.md) |
 
 ---
 

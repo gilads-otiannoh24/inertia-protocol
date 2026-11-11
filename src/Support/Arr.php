@@ -7,13 +7,88 @@ namespace Inertia\Protocol\Support;
 use Closure;
 use Inertia\Protocol\Contracts\PropInterface;
 
-final class Arr
+class Arr
 {
     /**
      * JavaScript's safe integer boundaries: -(2^53 - 1) to (2^53 - 1).
      */
     public const JS_MAX_SAFE_INTEGER = 9007199254740991;
     public const JS_MIN_SAFE_INTEGER = -9007199254740991;
+
+    public static function accessible(mixed $value): bool
+    {
+        return is_array($value) || $value instanceof \ArrayAccess;
+    }
+
+    public static function exists(mixed $array, int|string $key): bool
+    {
+        if ($array instanceof \ArrayAccess) {
+            return $array->offsetExists($key);
+        }
+
+        if (is_array($array)) {
+            return array_key_exists($key, $array);
+        }
+
+        return false;
+    }
+
+    public static function get(mixed $array, mixed $key, mixed $default = null): mixed
+    {
+        if (!static::accessible($array)) {
+            return static::value($default);
+        }
+
+        if (null === $key) {
+            return $array;
+        }
+
+        if (static::exists($array, $key)) {
+            return $array[$key];
+        }
+
+        if (!str_contains((string) $key, '.')) {
+            return $array[$key] ?? static::value($default);
+        }
+
+        foreach (explode('.', (string) $key) as $segment) {
+            if (static::accessible($array) && static::exists($array, $segment)) {
+                $array = $array[$segment];
+            } else {
+                return static::value($default);
+            }
+        }
+
+        return $array;
+    }
+
+    public static function set(mixed &$array, mixed $key, mixed $value): mixed
+    {
+        if (null === $key) {
+            return $array = $value;
+        }
+
+        $keys = explode('.', (string) $key);
+
+        while (count($keys) > 1) {
+            $k = array_shift($keys);
+
+            if (!isset($array[$k]) || !is_array($array[$k])) {
+                $array[$k] = [];
+            }
+
+            $array = &$array[$k];
+        }
+
+        $array[array_shift($keys)] = $value;
+
+        return $array;
+    }
+
+    public static function only(array $array, array|string $keys): array
+    {
+        return array_intersect_key($array, array_flip((array) $keys));
+    }
 
     /**
      * Resolves a single value, executing it if callable or closure.

@@ -59,6 +59,41 @@ class PageObject implements JsonSerializable
     }
 
     /**
+     * Reconstruct a PageObject from an associative array.
+     *
+     * @param array<string, mixed> $data
+     */
+    public static function fromArray(array $data, ?ProtocolVersion $protocolVersion = null): self
+    {
+        $version = $protocolVersion
+            ?? (isset($data['protocolVersion']) ? ProtocolVersion::fromMixed($data['protocolVersion']) : null)
+            ?? (isset($data['__protocolVersion']) ? ProtocolVersion::fromMixed($data['__protocolVersion']) : ProtocolVersion::V3);
+
+        return new self(
+            component: (string) ($data['component'] ?? ''),
+            props: (array) ($data['props'] ?? []),
+            url: (string) ($data['url'] ?? ''),
+            version: $data['version'] ?? '',
+            deferredProps: (array) ($data['deferredProps'] ?? []),
+            rescuedProps: (array) ($data['rescuedProps'] ?? []),
+            mergeProps: (array) ($data['mergeProps'] ?? []),
+            prependProps: (array) ($data['prependProps'] ?? []),
+            deepMergeProps: (array) ($data['deepMergeProps'] ?? []),
+            matchPropsOn: (array) ($data['matchPropsOn'] ?? []),
+            onceProps: (array) ($data['onceProps'] ?? []),
+            liveProps: (array) ($data['liveProps'] ?? []),
+            scrollProps: (array) ($data['scrollProps'] ?? []),
+            sharedProps: (array) ($data['sharedProps'] ?? []),
+            flash: (array) ($data['flash'] ?? []),
+            encryptHistory: (bool) ($data['encryptHistory'] ?? false),
+            clearHistory: (bool) ($data['clearHistory'] ?? false),
+            preserveBigIntegers: (bool) ($data['preserveBigIntegers'] ?? false),
+            preserveFragment: (bool) ($data['preserveFragment'] ?? false),
+            protocolVersion: $version
+        );
+    }
+
+    /**
      * Convert the Page Object to an associative array matching the Inertia specification.
      * Conditional metadata fields are only emitted when active/non-empty and supported by the protocol version.
      *
@@ -156,7 +191,7 @@ class PageObject implements JsonSerializable
     {
         return json_encode(
             $this->toArray(),
-            JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_THROW_ON_ERROR
+            JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
         );
     }
 
